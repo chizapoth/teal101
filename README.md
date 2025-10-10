@@ -1,2 +1,2 @@
-# teal101
-Teal notes
+# teal_user_guide
+My teal notes

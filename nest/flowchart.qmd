@@ -1,0 +1,126 @@
+---
+title: "Teal workflow"
+description: |
+ Workflow
+author: "Chi Zhang"
+date: "2025-10-08"
+categories: [teal]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: false
+---
+
+
+this is the one
+
+```{mermaid}
+flowchart LR
+    A[(DCH)]:::blue --> B[eCRF data]:::orange --> C[Data processing & automation]:::green --> D[(Harbour)]:::blue
+    
+    classDef blue fill:#2a9df4,stroke:#1565c0,color:#000
+    classDef green fill:#72bf6a,stroke:#2e7d32,color:#000
+    classDef orange fill:#ee9f27,stroke:#e65100,color:#000
+```
+
+
+```{mermaid}
+flowchart LR
+    A[(Harbour)]:::blue --> B["**Create teal app** <br/>• teal.modules.mdr R package <br/>• teal for MDR handbook <br/>• Catalog templates"]:::pink --> C[Deploy - Posit Connect]:::blue2 
+    
+    classDef blue fill:#6ac5fe,stroke:#1565c0,color:#000
+    classDef pink fill:#ecbdc4,stroke:#e34234,color:#000
+    classDef blue2 fill:#caf0f8,stroke:#0077b6,color:#000
+```
+
+
+
+
+```{mermaid}
+classDiagram
+    class Animal {
+        +String name
+        +eat()
+    }
+    class Dog {
+        +bark()
+    }
+    Animal <|-- Dog
+```
+
+
+```{mermaid}
+flowchart TD
+    A[Rectangle]
+    B(Round edges)
+    C((Circle))
+    D{Diamond}
+    E{{Hexagon}}
+    F[/Parallelogram/]
+    G[\Parallelogram alt\]
+    H(/Stadium\)
+    I[[Subroutine]]
+    J[(Database/Cylinder)]
+    K>Flag]
+```
+
+```{mermaid}
+flowchart LR
+    A[(Database)] --> B[fa:fa-file Single File]
+    A --> C[fa:fa-files-o Multiple Files]
+    C --> D[fa:fa-folder Folder]
+    D --> E[fa:fa-cloud-upload Upload]
+```
+
+
+
+
+
+```{mermaid}
+flowchart TD
+    A["Step 1:<br/>• Task A<br/>• Task B"] --> B[Step 2]
+```
+
+
+
+
+```{mermaid}
+flowchart TD
+    A[Main Process] --> B[Item 1]
+    A --> C[Item 2]
+    A --> D[Item 3]
+    B --> E[Next Step]
+    C --> E
+    D --> E
+```
+
+
+
+
+```{mermaid}
+flowchart TD
+    A[fa:fa-layer-group Multiple Datasets] --> B[Process]
+```
+
+
+
+```{mermaid}
+sequenceDiagram
+  participant Alice
+  participant Bob
+  Alice->>John: Hello John, how are you?
+  loop Healthcheck
+    John->>John: Fight against hypochondria
+  end
+  Note right of John: Rational thoughts <br/>prevail!
+  John-->>Alice: Great!
+  John->>Bob: How about you?
+  Bob-->>John: Jolly good!
+```
+

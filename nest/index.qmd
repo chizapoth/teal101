@@ -1,0 +1,51 @@
+---
+title: "Catalog"
+listing:
+  - id: shiny
+    max-description-length: 500
+    image-height: 150px
+    fields: [title]
+    contents: 
+      - "shiny_101.qmd"
+      - "shiny_workflow.qmd"
+      - "shiny_reactivity.qmd"
+      - "ui.qmd"
+      - 'shinylive_qt.qmd'
+    type: table
+    grid-item-border: false
+    sort-ui: false
+    sort: date
+    filter-ui: false
+    categories: true
+    
+  - id: teal
+    max-description-length: 500
+    image-height: 150px
+    fields: [title]
+    contents: 
+      - "teal_101.qmd"
+      - "teal_custom.qmd"
+      - "teal_workshop.qmd"
+    type: table
+    grid-item-border: false
+    sort-ui: false
+    sort: date
+    filter-ui: false
+    categories: true
+---
+
+This page lists topics that are related to shiny and teal.
+
+## Shiny
+
+::: {#shiny}
+:::
+
+
+## Teal
+
+::: {#teal}
+:::
+
+
+

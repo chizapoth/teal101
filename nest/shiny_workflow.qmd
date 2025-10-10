@@ -1,0 +1,45 @@
+---
+title: "Shiny workflow"
+description: |
+  How to become a better shiny developer
+author: "Chi Zhang"
+date: "2025-09-10"
+categories: [Shiny]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    code-tools: false
+---
+
+Development cycle (creating apps, making changes, experimenting with the results)
+
+Steps: 
+
+1. write some code
+2. launch the app with short-cut: `cmd/ctrl + shift + enter` (source)
+3. interactively experiment with the app
+4. close app, go back to 1.
+
+
+Create the app with the following lines:
+
+```{r}
+#| eval: false
+
+library(shiny)
+ui <- fluidPage(
+)
+server <- function(input, output, session){
+}
+shinyApp(ui, server)
+```
+
+
+
+

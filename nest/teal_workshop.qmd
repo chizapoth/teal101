@@ -1,0 +1,286 @@
+---
+title: "Teal workshop preparation"
+description: |
+  Topics related to data and filter
+author: "Chi Zhang"
+date: "2025-09-10"
+categories: [teal]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: false
+---
+
+
+This is my notes on preparing the teal workshop. All the data used are simulated and public. 
+
+### Topics
+
+- `init()`
+- data (`teal_data` object)
+- filter (`teal_slices` object)
+- UI modification
+
+
+Data used in the workshop are:
+
+- IRIS
+- `tmc_ex_adsl`, `tmc_ex_adae` (included in the `teal.modules.clinical` package)
+
+
+
+### Get started 
+
+Load necessary libraries.
+
+```{r}
+suppressPackageStartupMessages({
+    library(teal)
+    library(teal.modules.general)
+    library(teal.modules.clinical)
+})
+```
+
+## Working with data
+
+Outline
+
+* What is `teal_data`
+* Ways to add data
+    * directly adding data object
+    * add data with `within()` (pipe needs to be introduced)
+        * code inside
+        * source from another script
+* Interact with `teal_data` object
+    * extract object (`[[]]`, `$`)
+    * examine column names
+* Reproducibility 
+* `join_keys()`
+
+
+### General usage
+
+What is `teal_data`?
+
+```{r}
+empty_teal_data <- teal_data()
+class(empty_teal_data)
+```
+
+General usage
+
+
+```{r}
+path <- 'data/cdisc/'
+ADSL <- read.csv(file.path(path, 'adsl.csv'))
+# create teal_data object
+data <- teal_data(
+  ADSL = ADSL
+)
+# return data object
+data
+```
+
+Add another dataset, for example, ADAE
+
+```{r}
+ADAE <- read.csv(file.path(path, 'adae.csv'))
+# update teal_data object
+data <- teal_data(
+  ADSL = ADSL,
+  ADAE = ADAE
+)
+data
+```
+
+### Interacting with the object
+
+```{r}
+names(data)
+```
+
+Extract one dataset, can use either `[[]]` or `$`
+
+```{r}
+data$ADSL[1:6,1:6] # only print the first 6 rows and 6 columns
+data[['ADSL']][1:6,1:6]  # need quotation!
+```
+
+Explore individual dataset: the approach is similar to an ordinary dataframe. For exmaple, to get the column names, can use this syntax:
+
+```{r}
+names(data[['ADSL']]) # colnames() will also work
+```
+
+
+### Reproducibility
+
+In `teal_data`, you can also include code that has produced the object. However, you still need to run the code outside this object! 
+
+```{r}
+data <- teal_data(
+  ADSL = ADSL,
+  ADAE = ADAE,
+  code = '
+  path <- "data/cdisc"
+  ADSL <- read.csv(file.path(path, "adsl.csv"))
+  ADAE <- read.csv(file.path(path, "adae.csv"))
+  '
+)
+get_code(data)
+```
+
+
+### Join keys for CDISC data
+
+
+![](figs/workshop_1.png){width=80%}
+
+```{r}
+join_keys(data)
+```
+
+There is no relationship between these two datasets, hence the filtering does not affect one another.
+
+More on [join_keys()](https://insightsengineering.github.io/teal.data/latest-tag/articles/join-keys.html)
+
+Set up primary and foreign keys 
+
+```{r}
+default_cdisc_join_keys[c("ADSL", "ADAE")] # Subset for ADSL and ADAE
+```
+
+
+Instead of using `teal_data()`, `cdisc_data()` automatcially sets the key.
+
+```{r}
+data <- cdisc_data(
+  ADSL = ADSL,
+  ADAE = ADAE
+)
+# check join_keys again
+join_keys(data)
+```
+
+
+![](figs/workshop_2.png){width=80%}
+
+
+### Process data: `within()`
+
+```{r}
+data <- teal_data() |>
+  within({
+    path <- "data/cdisc"
+    ADSL <- read.csv(file.path(path, "adsl.csv"))
+    ADAE <- read.csv(file.path(path, "adae.csv"))
+  })
+data
+```
+
+Note that there are three binding rather than two. You can access the data in the same way (`[[]]` or `$`).
+
+```{r}
+data$path
+```
+
+Read from another R script: 
+
+Create a separate script (`preprocess.R`) with the code where you read in the data, then source it.
+
+```{r}
+data <- teal_data() |>
+  within(code, code = parse(text = readLines("demo_script/preprocess.R")))
+data
+```
+
+
+### `join_keys()` revisited
+
+Distinguish `join_key` and `join_keys`! 
+
+
+
+Assign `join_keys()` with default cdisc keys
+
+
+
+
+## Filters
+
+Topics
+
+- How to set a filter
+- Difference between different filters (anchored, fixed, custom expressions)
+- Use for `id`
+- Module specific filters
+
+
+
+Resources
+
+- Teal documentation: [filter panel](https://insightsengineering.github.io/teal/latest-tag/articles/filter-panel.html)
+
+
+Difference between `teal_slice` and `teal_slices`: the former is in `teal.slices` package, while the later is in `teal` package - as a function to wrap individual `ts` objects. 
+
+
+
+By default, `init()` initializes the fitler panel without any active filters. User can add filter on any column.
+
+To start an app with **predefined** filters, one must specify the filter argument, wrapped around `teal_slices()`. Example: 
+
+```{r}
+#| eval: false
+
+app <- init(
+  data = teal_data(IRIS = iris, CARS = mtcars),
+  modules = example_module(),
+  filter = teal_slices(
+    teal_slice(dataname = "IRIS", varname = "Sepal.Length"),
+    teal_slice(dataname = "IRIS", varname = "Species", selected = "setosa"),
+    teal_slice(dataname = "CARS", varname = "mpg", selected = c(20, Inf)),
+    teal_slice(dataname = "CARS", expr = "qsec < 20", title = "1/4 mile under 20 sec", id = "qsec_20")
+  )
+)
+```
+
+
+A few things to notice here in the filter panel:
+
+- you can create multiple filters on each dataset. You need to link the filter with the data name inside the `teal_data` object.
+- Required arguments are `dataname` and `varname` (if you are not using custom expression).
+- For `selected` argument, if you don't specify anything, the default will be the entire range. Distinguish between continuous variable and discrete.
+- 
+
+![](figs/workshop_3.png){width=100%}
+
+
+### Fixed, anchored and custom expressions
+
+```{r}
+f1 <- teal_slice(
+  dataname = 'IRIS',
+  varname = 'Sepal.Length',
+  selected = 'setosa'
+)
+f1
+```
+
+- Fixed: forbid settings state
+- anchored: forbid removing and inactivating
+
+If using **custom expressions**, must have `id`. Otherwise `id` is automatically set to be `dataname - varname`.
+
+This expression must be a valid R expression which can be evaluated in the dataset.
+
+
+### Module specific filters
+
+
