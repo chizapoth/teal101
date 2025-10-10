@@ -1,5 +1,5 @@
 ---
-title: "Teal User Guide"
+title: "Teal 101"
 # image: misc/logo_dan.png
 about:
   id: hero-heading
@@ -8,7 +8,7 @@ about:
   links:
     - icon: github
       text: Github
-      href: https://github.com/chizapoth/teal_user_guide
+      href: https://github.com/chizapoth/teal101
 ---
 
 ::: {#hero-heading}
