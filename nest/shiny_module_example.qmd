@@ -1,0 +1,153 @@
+---
+title: "Shiny module example"
+description: |
+  Some basic examples of converting a shiny app with shiny modules
+author: "Chi Zhang"
+date: "2025-10-10"
+categories: [Shiny]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+filters: 
+  - shinylive
+format: 
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    code-tools: false
+---
+
+This is a basic shiny app.
+
+## App without modules
+
+```{shinylive-r}
+#| standalone: true
+#| viewerHeight: 800
+#| components: [editor, viewer]
+#| layout: vertical
+library(shiny)
+data <- iris
+
+# define ui
+ui <- fluidPage(
+  # Application title
+  titlePanel("Data display"),
+  # Sidebar layout with input and output definitions
+  sidebarLayout(
+    # Sidebar panel for inputs (for now empty)
+    sidebarPanel(
+      # Add some placeholder controls here if needed
+      h4("Controls")
+    ),
+
+    # Main panel for displaying outputs
+    mainPanel(
+      tableOutput("data_table")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  output$data_table <- renderTable({
+    data
+  })
+}
+shinyApp(ui = ui, server = server)
+```
+
+## Make the same app with modules
+
+### Module UI
+
+```{r}    
+#| eval: false
+
+ui <- fluidPage(
+  titlePanel("Data display"),
+  sidebarLayout(
+    sidebarPanel(
+      h4("Controls")
+    ),
+    mainPanel(
+      tableOutput("data_table") #<1> 
+    )
+  )
+)
+```
+1. We are going to replace this line with a module UI function
+
+Make a function just for the table UI. 
+
+```{r}
+#| eval: false
+
+table_UI <- function(id) {
+  ns <- NS(id) # remember to have this NS
+  tableOutput(ns("data_table"))
+}
+```
+
+### Module server
+
+How it looks like without modules
+
+```{r}
+#| eval: false
+server <- function(input, output) {
+  output$data_table <- renderTable({
+    data
+  })
+}
+```
+
+
+Make a function, `table_server`.
+
+```{r}
+#| eval: false
+table_server <- function(id) {
+  moduleServer(id, function(input, output, session) { #<1>
+    data <- reactive(data)  #<2>
+    output$data_table <- renderTable(
+      data() #<3>
+    )
+  })
+}
+```
+1. `moduleServer` is used to define the server logic for a module.
+2. Wrap `data` in `reactive()` to make it reactive.
+3. Use `data()` to access the reactive value. It has to be a function call.
+
+
+## Main app: put together
+
+Now this UI part looks very similar to the original one, except we replace `tableOutput` with `table_UI`.
+
+```{r}
+#| eval: false
+ui <- fluidPage(
+  titlePanel("Data display"),
+  sidebarLayout(
+    sidebarPanel(
+      h4("Controls") #<1>
+    ),
+
+    mainPanel(
+      table_UI("my_first_table")#<2>
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  table_server("my_first_table")#<3>
+}
+
+shinyApp(ui = ui, server = server)
+```
+1. Placeholder for controls. 
+2. The ID needs to match between ui and server. Also, it is possible to have multiple instances of the same module with different IDs.
+3. The ID needs to match between ui and server.

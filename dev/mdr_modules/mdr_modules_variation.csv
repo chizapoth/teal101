@@ -1,0 +1,21 @@
+Module,Variation,Description
+tm_mdr_bargraph,simple,Basic bar graph for adverse events by system organ class
+tm_mdr_bargraph,bar,Grouped bar graph with secondary categorical variable
+tm_mdr_bargraph,tables,Bar graph with linked data tables
+tm_mdr_bargraph,bar_table,Grouped bar graph with linked data tables
+tm_mdr_lineplot,simple,Simple line plot for longitudinal measurements over time
+tm_mdr_lineplot,tables,Line plot with linked data tables
+tm_mdr_scatterplot,simple,Basic scatter plot for tumor response data
+tm_mdr_scatterplot,line,Scatter plot with connecting lines between points
+tm_mdr_scatterplot,tables,Scatter plot with linked data tables
+tm_mdr_scatterplot,line_table,Scatter plot with lines and linked data tables
+tm_mdr_spaghetti,simple,Simple spaghetti plot for biomarker trajectories
+tm_mdr_spaghetti,line,Spaghetti plot with connecting lines
+tm_mdr_spaghetti,tables,Spaghetti plot with linked data tables
+tm_mdr_spaghetti,line_table,Spaghetti plot with lines and linked data tables
+tm_mdr_spiderplot,simple,Spider plot showing percent change from baseline
+tm_mdr_spiderplot,tables,Spider plot with linked subject and event data tables
+tm_mdr_swimlane,simple,Swimlane plot showing subject timeline of events
+tm_mdr_swimlane,tables,Swimlane plot with linked subject and event data tables
+tm_mdr_waterfall,simple,Waterfall plot showing best tumor response
+tm_mdr_waterfall,tables,Waterfall plot with linked subject and response data tables

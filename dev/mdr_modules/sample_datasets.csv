@@ -1,0 +1,11 @@
+Dataset,Records,Description
+adverse_events,200,Adverse event data with severity and system organ class
+longitudinal_data,40,Longitudinal measurements across treatment groups
+tumor_response,72,Tumor size measurements over time with response categories
+biomarker_data,75,Biomarker levels over time with dose groups
+spider_data,48,Percent change from baseline for spider plots
+subjects,8,Subject demographics and baseline characteristics
+swimlane_subjects,12,Subject information for swimlane plots
+swimlane_events,47,Timeline events for swimlane plots
+waterfall_subjects,15,Subject information for waterfall plots
+waterfall_response,15,Best response data for waterfall plots

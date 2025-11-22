@@ -67,7 +67,7 @@
     "href": "nest/index.html#teal",
     "title": "Catalog",
     "section": "Teal",
-    "text": "Teal\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\n\n\nTeal 101\n\n\n\n\n\n\nTeal custom modules\n\n\n\n\n\n\nTeal workshop preparation\n\n\n\n\n\n\nNo matching items"
+    "text": "Teal\n\n\n\n\n\n\nTitle\n\n\n\n\n\n\n\n\nTeal 101\n\n\n\n\n\n\nTeal custom modules\n\n\n\n\n\n\nTeal workshop preparation\n\n\n\n\n\n\nUse teal with plotly\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "nest/teal_101.html",
@@ -271,5 +271,40 @@
     "title": "Teal workflow",
     "section": "",
     "text": "this is the one\n\n\n\n\n\nflowchart LR\n    A[(DCH)]:::blue --&gt; B[eCRF data]:::orange --&gt; C[Data processing & automation]:::green --&gt; D[(Harbour)]:::blue\n    \n    classDef blue fill:#2a9df4,stroke:#1565c0,color:#000\n    classDef green fill:#72bf6a,stroke:#2e7d32,color:#000\n    classDef orange fill:#ee9f27,stroke:#e65100,color:#000\n\n\n\n\n\n\n\n\n\n\n\nflowchart LR\n    A[(Harbour)]:::blue --&gt; B[\"**Create teal app** &lt;br/&gt;• teal.modules.mdr R package &lt;br/&gt;• teal for MDR handbook &lt;br/&gt;• Catalog templates\"]:::pink --&gt; C[Deploy - Posit Connect]:::blue2 \n    \n    classDef blue fill:#6ac5fe,stroke:#1565c0,color:#000\n    classDef pink fill:#ecbdc4,stroke:#e34234,color:#000\n    classDef blue2 fill:#caf0f8,stroke:#0077b6,color:#000\n\n\n\n\n\n\n\n\n\n\n\nclassDiagram\n    class Animal {\n        +String name\n        +eat()\n    }\n    class Dog {\n        +bark()\n    }\n    Animal &lt;|-- Dog\n\n\n\n\n\n\n\n\n\n\n\nflowchart TD\n    A[Rectangle]\n    B(Round edges)\n    C((Circle))\n    D{Diamond}\n    E{{Hexagon}}\n    F[/Parallelogram/]\n    G[\\Parallelogram alt\\]\n    H(/Stadium\\)\n    I[[Subroutine]]\n    J[(Database/Cylinder)]\n    K&gt;Flag]\n\n\n\n\n\n\n\n\n\n\n\nflowchart LR\n    A[(Database)] --&gt; B[fa:fa-file Single File]\n    A --&gt; C[fa:fa-files-o Multiple Files]\n    C --&gt; D[fa:fa-folder Folder]\n    D --&gt; E[fa:fa-cloud-upload Upload]\n\n\n\n\n\n\n\n\n\n\n\nflowchart TD\n    A[\"Step 1:&lt;br/&gt;• Task A&lt;br/&gt;• Task B\"] --&gt; B[Step 2]\n\n\n\n\n\n\n\n\n\n\n\nflowchart TD\n    A[Main Process] --&gt; B[Item 1]\n    A --&gt; C[Item 2]\n    A --&gt; D[Item 3]\n    B --&gt; E[Next Step]\n    C --&gt; E\n    D --&gt; E\n\n\n\n\n\n\n\n\n\n\n\nflowchart TD\n    A[fa:fa-layer-group Multiple Datasets] --&gt; B[Process]\n\n\n\n\n\n\n\n\n\n\n\nsequenceDiagram\n  participant Alice\n  participant Bob\n  Alice-&gt;&gt;John: Hello John, how are you?\n  loop Healthcheck\n    John-&gt;&gt;John: Fight against hypochondria\n  end\n  Note right of John: Rational thoughts &lt;br/&gt;prevail!\n  John--&gt;&gt;Alice: Great!\n  John-&gt;&gt;Bob: How about you?\n  Bob--&gt;&gt;John: Jolly good!"
+  },
+  {
+    "objectID": "nest/shiny_module_example.html",
+    "href": "nest/shiny_module_example.html",
+    "title": "Shiny module example",
+    "section": "",
+    "text": "This is a basic shiny app."
+  },
+  {
+    "objectID": "nest/shiny_module_example.html#app-without-modules",
+    "href": "nest/shiny_module_example.html#app-without-modules",
+    "title": "Shiny module example",
+    "section": "App without modules",
+    "text": "App without modules\n#| '!! shinylive warning !!': |\n#|   shinylive does not work in self-contained HTML documents.\n#|   Please set `embed-resources: false` in your metadata.\n#| standalone: true\n#| viewerHeight: 800\n#| components: [editor, viewer]\n#| layout: vertical\nlibrary(shiny)\ndata &lt;- iris\n\n# define ui\nui &lt;- fluidPage(\n  # Application title\n  titlePanel(\"Data display\"),\n  # Sidebar layout with input and output definitions\n  sidebarLayout(\n    # Sidebar panel for inputs (for now empty)\n    sidebarPanel(\n      # Add some placeholder controls here if needed\n      h4(\"Controls\")\n    ),\n\n    # Main panel for displaying outputs\n    mainPanel(\n      tableOutput(\"data_table\")\n    )\n  )\n)\n\n# Define server logic\nserver &lt;- function(input, output) {\n  output$data_table &lt;- renderTable({\n    data\n  })\n}\nshinyApp(ui = ui, server = server)"
+  },
+  {
+    "objectID": "nest/shiny_module_example.html#make-the-same-app-with-modules",
+    "href": "nest/shiny_module_example.html#make-the-same-app-with-modules",
+    "title": "Shiny module example",
+    "section": "Make the same app with modules",
+    "text": "Make the same app with modules\n\nModule UI\n\nui &lt;- fluidPage(\n  titlePanel(\"Data display\"),\n  sidebarLayout(\n    sidebarPanel(\n      h4(\"Controls\")\n    ),\n    mainPanel(\n1      tableOutput(\"data_table\")\n    )\n  )\n)\n\n\n1\n\nWe are going to replace this line with a module UI function\n\n\n\n\nMake a function just for the table UI.\n\ntable_UI &lt;- function(id) {\n  ns &lt;- NS(id) # remember to have this NS\n  tableOutput(ns(\"data_table\"))\n}\n\n\n\nModule server\nHow it looks like without modules\n\nserver &lt;- function(input, output) {\n  output$data_table &lt;- renderTable({\n    data\n  })\n}\n\nMake a function, table_server.\n\ntable_server &lt;- function(id) {\n1  moduleServer(id, function(input, output, session) {\n2    data &lt;- reactive(data)\n    output$data_table &lt;- renderTable(\n3      data()\n    )\n  })\n}\n\n\n1\n\nmoduleServer is used to define the server logic for a module.\n\n2\n\nWrap data in reactive() to make it reactive.\n\n3\n\nUse data() to access the reactive value. It has to be a function call."
+  },
+  {
+    "objectID": "nest/shiny_module_example.html#main-app-put-together",
+    "href": "nest/shiny_module_example.html#main-app-put-together",
+    "title": "Shiny module example",
+    "section": "Main app: put together",
+    "text": "Main app: put together\nNow this UI part looks very similar to the original one, except we replace tableOutput with table_UI.\n\nui &lt;- fluidPage(\n  titlePanel(\"Data display\"),\n  sidebarLayout(\n    sidebarPanel(\n1      h4(\"Controls\")\n    ),\n\n    mainPanel(\n2      table_UI(\"my_first_table\")\n    )\n  )\n)\n\nserver &lt;- function(input, output, session) {\n3  table_server(\"my_first_table\")\n}\n\nshinyApp(ui = ui, server = server)\n\n\n1\n\nPlaceholder for controls.\n\n2\n\nThe ID needs to match between ui and server. Also, it is possible to have multiple instances of the same module with different IDs.\n\n3\n\nThe ID needs to match between ui and server."
+  },
+  {
+    "objectID": "nest/plotly.html",
+    "href": "nest/plotly.html",
+    "title": "Use teal with plotly",
+    "section": "",
+    "text": "This article demonstrates how to create interactive modules in teal using plotly."
   }
 ]

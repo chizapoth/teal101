@@ -26,6 +26,7 @@ listing:
       - "teal_101.qmd"
       - "teal_custom.qmd"
       - "teal_workshop.qmd"
+      - "plotly.qmd"
     type: table
     grid-item-border: false
     sort-ui: false
