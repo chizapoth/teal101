@@ -1,0 +1,411 @@
+---
+title: "plotly modules - part 2: selection events"
+description: |
+  Selection events with brushing
+author: "Chi Zhang"
+date: "2025-11-22"
+categories: [Teal, plotly]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: false
+---
+
+This document compares `srv_mdr_scatterplot_simple` (no events) with `srv_mdr_scatterplot_table` (with selection events) to show the pattern for adding interactive plotly selection functionality.
+
+
+# Example: table with filtering
+
+```
+| Feature                    | Simple Version | Table Version |
+|----------------------------|----------------|---------------|
+| Event registration         | ❌ No          | ✅ Yes        |
+| Event data capture         | ❌ No          | ✅ Yes        |
+| Data filtering            | ❌ No          | ✅ Yes        |
+| Table rendering           | ❌ No          | ✅ Yes        |
+| plot_data access          | ❌ No          | ✅ Yes        |
+| Reactive chain            | 2 steps        | 5 steps       |
+
+The table version adds 3 key components:
+1. Event registration (plotly::event_register)
+2. Event capture (plotly::event_data)
+3. Data filtering based on selection
+```
+
+## UI differences
+
+The change in UI is quite straight-forward. `ui_t_reactables(ns("subtables"))` added to display tables.
+
+```{r}
+#| eval: false
+#| code-fold: true
+#| code-summary: "ui_mdr_scatterplot_simple"
+ui_mdr_scatterplot_simple <- function(id) {
+  ns <- NS(id)
+  bslib::page_fluid(
+    shinyjs::useShinyjs(),
+    tags$div(
+      trigger_tooltips_deps(),
+      tags$div(
+        style = "margin-bottom: 15px;",
+        tags$strong("Color Settings: "),
+        colour_picker_ui(ns("colors"))
+      ),
+      bslib::card(
+        full_screen = TRUE,
+        plotly::plotlyOutput(ns("scatter_plot"), height = "100%")
+      )
+      # ← NO tables UI here
+    )
+  )
+}
+```
+
+
+```{r}
+#| eval: false
+ui_mdr_scatterplot_table <- function(id) {
+  ns <- NS(id)
+  bslib::page_fluid(
+    shinyjs::useShinyjs(),
+    tags$div(
+      trigger_tooltips_deps(),
+      tags$div(
+        style = "margin-bottom: 15px;",
+        tags$strong("Color Settings: "),
+        colour_picker_ui(ns("colors"))
+      ),
+      bslib::card(
+        full_screen = TRUE,
+        plotly::plotlyOutput(ns("scatter_plot"), height = "100%")
+      ),
+      tags$br(),
+      ui_t_reactables(ns("subtables"))  # ← ADDED: Tables UI component
+    )
+  )
+}
+```
+
+
+
+## Server differences 
+
+### Part 1: color picker (same)
+
+```{r}
+#| eval: false
+color_inputs <- colour_picker_srv(
+  "colors",
+  x = reactive({
+    data()[[plot_dataname]][[color_var]]
+  }),
+  default_colors = point_colors
+)
+```
+
+### Part 2: scatter plot generation with `scatterplotly()`
+
+```{r}
+#| eval: false
+
+scatter_q <- reactive({
+  req(color_inputs())
+  data() |>
+    within(
+      code,
+      code = scatterplotly(
+        df = plot_dataname,
+        x_var = x_var,
+        y_var = y_var,
+        color_var = color_var,
+        id_var = subject_var,
+        colors = color_inputs(),
+        source = session$ns("scatterplot"),
+        tooltip_vars = tooltip_vars
+      )
+    )
+})
+```
+
+
+### Part 3: render plotly output with selection events handling
+
+KEY DIFFERENCE 1: 
+
+- Simple: No event registration
+- Table: Registers `"plotly_selected"` event so Shiny can capture selections
+
+```{r}
+#| eval: false
+
+# SIMPLE VERSION:
+output$scatter_plot <- plotly::renderPlotly({
+  scatter_q()$p |>
+    setup_trigger_tooltips(session$ns("scatter_plot"))
+    # ← NO event_register() call
+})
+
+# TABLE VERSION:
+output$scatter_plot <- plotly::renderPlotly({
+  scatter_q()$p |>
+    setup_trigger_tooltips(session$ns("scatter_plot")) |>
+    plotly::event_register("plotly_selected")  # ← ADDED: Register selection event
+})
+```
+
+
+### Part 4: event data capture 
+
+KEY DIFFERENCE 2:
+
+- Simple: No event data capture, no reactive to read plotly selections
+- Table: Uses `plotly::event_data()` to capture selection events reactively
+
+```{r}
+#| eval: false
+
+plotly_selected_scatter <- reactive({
+  plotly::event_data("plotly_selected", source = session$ns("scatterplot"))
+})
+```
+
+What plotly_selected_scatter() returns:
+
+- NULL when nothing is selected
+- A data frame with columns like:
+  * customdata: The row numbers of selected points
+  * x, y: Coordinates of selected points
+  * curveNumber: Which trace the point belongs to
+  * pointNumber: Index of the point in the trace
+
+
+### Part 5: data filtering based on selection
+
+KEY DIFFERENCE 3:
+
+- Simple: No data filtering, no tables to filter
+- Table: Filters data based on selected points using:
+  1. Extract customdata from plotly selection
+  2. Find corresponding rows in plot_data
+  3. Get subject_var values from selected rows
+  4. Filter tables to only show those subjects
+
+
+```{r}
+#| eval: false
+
+filtered_data_q <- reactive({
+  req(plotly_selected_scatter())  # ← Wait for selection
+  scatter_selected <- plotly_selected_scatter()
+
+  if (!is.null(scatter_selected)) {
+    # Extract selected values from plot data
+    selected_values <- scatter_q()$plot_data |>  # ← Access plot_data from scatter_q
+      dplyr::filter(customdata %in% scatter_selected$customdata)
+    
+    # Filter the actual data tables
+    data() |>
+      within(
+        {
+          for (table_name in table_datanames) {
+            current_table <- get(table_name)
+            filtered_table <- current_table |>
+              dplyr::filter(subject_var_sym %in% subject_var_selected)
+            assign(table_name, filtered_table)
+          }
+        },
+        table_datanames = table_datanames,
+        subject_var_sym = str2lang(subject_var),
+        subject_var_selected = selected_values[[subject_var]]  # ← Filter by subject
+      )
+  } else {
+    data()  # ← Return unfiltered data if no selection
+  }
+})
+```
+
+
+### Part 6: render tables based on filtered data
+
+KEY DIFFERENCE 4:
+
+- Simple: No tables to render
+- Table: Renders tables that automatically update when `filtered_data_q()` changes
+
+```{r}
+#| eval: false
+
+srv_t_reactables(
+  "subtables",
+  data = filtered_data_q, # ← Use filtered data reactive
+  filter_panel_api = filter_panel_api,
+  datanames = table_datanames,
+  reactable_args = reactable_args
+)
+```
+
+
+## Flow diagram
+
+```
+SIMPLE VERSION FLOW:
+color_inputs() → scatter_q() → output$scatter_plot
+(No event handling, no tables)
+
+TABLE VERSION FLOW:
+color_inputs() → scatter_q() → output$scatter_plot
+                                   ↓
+                         plotly_selected_scatter() ← User selects points
+                                   ↓
+                         filtered_data_q() ← Filter data based on selection
+                                   ↓
+                         srv_t_reactables() ← Update tables
+```
+
+
+## Key pattern to add selection events 
+
+1. REGISTER THE EVENT in plot rendering
+
+```{r}
+#| eval: false
+output$scatter_plot <- plotly::renderPlotly({
+  scatter_q()$p |>
+    setup_trigger_tooltips(session$ns("scatter_plot")) |>
+    plotly::event_register("plotly_selected") # ← ADD THIS
+})
+```
+
+2. CAPTURE THE EVENT DATA with a reactive 
+
+```{r}
+#| eval: false
+plotly_selected_scatter <- reactive({
+  plotly::event_data("plotly_selected", source = session$ns("scatterplot"))
+  # ← Source must match the source in scatterplotly() call
+})
+```
+
+3. FILTER DATA based on selection 
+
+```{r}
+#| eval: false
+filtered_data_q <- reactive({
+  req(plotly_selected_scatter())
+  scatter_selected <- plotly_selected_scatter()
+
+  if (!is.null(scatter_selected)) {
+    # Extract selected subject IDs
+    selected_values <- scatter_q()$plot_data |>
+      dplyr::filter(customdata %in% scatter_selected$customdata)
+
+    # Filter your data tables
+    data() |>
+      within({
+        # Filter logic here
+      })
+  } else {
+    data() # Return unfiltered if no selection
+  }
+})
+```
+
+4. USE FILTERED DATA in downstream components 
+
+```{r}
+#| eval: false
+
+srv_t_reactables(
+  "subtables",
+  data = filtered_data_q, # ← Use filtered data
+  ...
+)
+```
+
+## Key takeaways
+
+1. SOURCE IDENTIFIER:
+
+   - Must match between scatterplotly() and event_data()
+   - scatterplotly(..., source = session$ns("scatterplot"))
+   - event_data(..., source = session$ns("scatterplot"))
+   - These MUST match!
+
+2. CUSTOMDATA:
+
+   - scatterplotly() adds customdata = row_number() to each point
+   - This is used to map selected points back to data rows
+   - Access via: scatter_selected$customdata
+
+3. PLOT_DATA ACCESS:
+
+   - scatter_q()$plot_data contains the data used to create the plot
+   - This includes the customdata column
+   - Use this to find which subjects correspond to selected points
+   - NOTE: plot_data is created inside scatterplotly() code but may need
+     to be explicitly returned or accessed via teal::within() environment
+   - If plot_data is not available, you may need to recreate it:
+     plot_data <- data()[[plot_dataname]] |>
+       dplyr::mutate(customdata = dplyr::row_number())
+
+4. REACTIVE DEPENDENCIES:
+
+   - filtered_data_q() depends on plotly_selected_scatter()
+   - plotly_selected_scatter() depends on user interaction
+   - Tables automatically update when filtered_data_q() changes
+
+5. NULL HANDLING:
+
+   - event_data() returns NULL when nothing is selected
+   - Always check for NULL before using selection data
+   - Return unfiltered data when NULL (show all records)
+
+
+# Register events 
+
+In the example above we are comparing the specific implementation with
+
+- table
+- filtering
+
+However if we do not need filtering, we just want to register selected events, 
+
+```{r}
+#| eval: false
+
+srv_mdr_scatterplot_simple_with_selection <- function(...) {
+  moduleServer(id, function(input, output, session) {
+    # ... existing color_inputs and scatter_q code ...
+
+    # CHANGE 1: Register event in plot rendering
+    output$scatter_plot <- plotly::renderPlotly({
+      scatter_q()$p |>
+        setup_trigger_tooltips(session$ns("scatter_plot")) |>
+        plotly::event_register("plotly_selected") # ← ADD THIS
+    })
+
+    # CHANGE 2: Capture selection events
+    plotly_selected <- reactive({
+      plotly::event_data("plotly_selected", source = session$ns("scatterplot"))
+    })
+
+    # CHANGE 3: Do something with the selection (example: print to console)
+    observe({
+      selected <- plotly_selected()
+      if (!is.null(selected)) {
+        cat("Selected", nrow(selected), "points\n")
+        print(selected$customdata)
+      }
+    })
+
+    # Or filter data and use it elsewhere...
+  })
+}
+```
+

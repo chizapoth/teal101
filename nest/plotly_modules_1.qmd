@@ -1,0 +1,289 @@
+---
+title: "plotly modules - part 1"
+description: |
+  How to create teal modules with plotly
+author: "Chi Zhang"
+date: "2025-11-22"
+categories: [Teal, plotly]
+sidebar: false
+code-block-bg: true
+code-block-border-left: true
+highlight-style: tango
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-tools: false
+---
+
+This article demonstrates how to create interactive modules in `teal` using `plotly`.
+
+## How `scatterplotly()` creates a shiny app
+
+The flow:
+
+1. User calls `tm_mdr_scatterplot_simple()` → creates a teal module
+2. Module defines UI (`ui_mdr_scatterplot_simple`) and Server (`srv_mdr_scatterplot_simple`)
+3. Server reactive calls `scatterplotly()` → generates code expression
+4. `teal::within()` evaluates the code expression in data environment
+5. Result contains plot object (`$p`) which is rendered by Shiny
+
+
+::: {.callout-note}
+### Reactive flow diagram
+
+- User changes color in color picker ->
+- Color picker module updates reactive colors ->
+- `scatterplotly()` is called with new colors ->
+- `teal::within()` re-evaluates the code with new colors ->
+- New plot object is created ->
+- Plot is re-rendered in the UI
+:::
+
+### Step 0: scatterplotly function
+
+This function creates a scatter plot using `plotly` based on the provided data and parameters.
+
+
+### Step 1: module creation
+
+User calls `tm_mdr_scatterplot_simple()` to create a teal module. This creates:
+
+- UI function
+- Server function 
+- Server arguments 
+
+```{r}
+#| eval: false
+tm_mdr_scatterplot_simple(
+  label = "Simple Scatter Plot",
+  plot_dataname = "tumor_response_longitudinal",
+  subject_var = "subject_id",
+  x_var = "time_week",
+  y_var = "tumor_size",
+  color_var = "treatment"
+)
+```
+
+
+### Step 2: UI definition
+
+```{r}
+#| eval: false
+ui_mdr_scatterplot_simple <- function(id) {
+  ns <- NS(id)  # Create namespace for this module instance
+  
+  bslib::page_fluid(
+    shinyjs::useShinyjs(),
+    tags$div(
+      trigger_tooltips_deps(),
+      
+      # Color picker UI component
+      tags$div(
+        style = "margin-bottom: 15px;",
+        tags$strong("Color Settings: "),
+        colour_picker_ui(ns("colors"))  # ← Color picker module
+      ),
+      
+      # Plot output
+      bslib::card(
+        full_screen = TRUE,
+        plotly::plotlyOutput(ns("scatter_plot"), height = "100%")  # ← Plot output
+      )
+    )
+  )
+}
+```
+
+Key points:
+
+- `ns("scatter_plot")` creates a namespaced ID
+- this ID is used in the **server** to render the plot
+
+
+### Step 3: server 
+
+Server reactive chain: 
+
+```
+color_inputs() → scatter_q() → output$scatter_plot
+```
+
+```{r}
+#| eval: false
+
+srv_mdr_scatterplot_simple <- function(
+  id,
+  data,              # ← Reactive teal_data object
+  plot_dataname,     # ← "tumor_response_longitudinal"
+  subject_var,       # ← "subject_id"
+  x_var,             # ← "time_week"
+  y_var,             # ← "tumor_size"
+  tooltip_vars,      # ← NULL or character vector
+  color_var,         # ← "treatment"
+  point_colors,      # ← Named color vector
+  filter_panel_api
+) {
+  moduleServer(id, function(input, output, session) {
+    ns <- session$ns
+    
+    # ------------------------------------------------------------------------
+    # PART A: Color Picker Server
+    # ------------------------------------------------------------------------
+    
+    color_inputs <- colour_picker_srv( #<1>
+      "colors",
+      x = reactive({
+        # Extract color variable values from data
+        data()[[plot_dataname]][[color_var]]
+      }),
+      default_colors = point_colors
+    )
+    
+    # ------------------------------------------------------------------------
+    # PART B: Generate Plot Code (where scatterplotly() is called)
+    # ------------------------------------------------------------------------
+    
+    scatter_q <- reactive({
+      req(color_inputs())  # Wait for colors to be ready
+      
+      data() |>
+        within(
+          code,  # ← Name of the code expression in the result
+          code = scatterplotly(  # ← Call scatterplotly() to generate code
+            df = plot_dataname,           # "tumor_response_longitudinal"
+            x_var = x_var,               # "time_week"
+            y_var = y_var,               # "tumor_size"
+            color_var = color_var,       # "treatment"
+            id_var = subject_var,        # "subject_id"
+            colors = color_inputs(),      # Reactive colors from color picker
+            source = session$ns("scatterplot"),  # "module-scatterplot"
+            tooltip_vars = tooltip_vars
+          )
+        )
+    })#<2>
+    
+    # ------------------------------------------------------------------------
+    # PART C: Render the Plot
+    # ------------------------------------------------------------------------
+    
+    output$scatter_plot <- plotly::renderPlotly({
+      scatter_q()$p |>  # Extract the plot object from the result
+        setup_trigger_tooltips(session$ns("scatter_plot"))
+    })#<3>
+  })
+}
+
+```
+1. `color_inputs()` is a reactive that returns a named vector of colors. Example: `c("Active" = "#1f77b4", "Placebo" = "#ff7f0e")`
+2. `scatterplotly()` uses substitute() to create a code expression. `teal::within()` evaluates that code expression in the data() environment. The result is a list with `$code (the expression)` and `$p` (the plot object)
+3. This reactive: re-runs whenever scatter_q() changes (e.g., colors change). Extracts the `$p` component (the plotly plot object) Sets up tooltip triggers. Renders it in the UI
+    
+
+
+::: {.callout-note collapse="true"}
+### How `teal::within()` evaluates the code
+
+`teal::within()` takes a `teal_data` object and a code expression (from `scatterplotly()`), and evaluates the code in the context of the data environment.
+
+```{r}
+#| eval: false
+data() |>
+  within(
+    code,
+    code = scatterplotly(...)
+  )
+```
+:::
+
+It returns a list with
+
+- `$code`; the original code expression (for reproducibility)
+- `$p`; the generated plotly plot object
+
+
+### Key takeaways
+
+1. Code Generation Pattern:
+   - scatterplotly() doesn't create the plot directly
+   - It creates CODE that will create the plot
+   - This code is evaluated later by teal::within()
+
+2. Why use substitute()?
+   - Allows code to reference data frames by name (as symbols)
+   - Code can be stored and reproduced later
+   - Enables teal's code reproducibility features
+
+3. Reactive Chain:
+   - color_inputs() → scatter_q() → output$scatter_plot
+   - Each step depends on the previous one
+   - Changes cascade through the chain
+
+4. Data Environment:
+   - teal::within() evaluates code in a special environment
+   - Data frames are available by name (e.g., "tumor_response_longitudinal")
+   - This is why str2lang() converts strings to symbols
+
+
+### Comparison
+
+Benefits of code generation:
+
+- Code can be saved and reproduced
+- Supports teal's reproducibility features
+- Code can be inspected and modified
+- Better for medical data review workflows
+
+
+```{r}
+#| eval: false
+# DIRECT APPROACH (what you might do in a regular Shiny app):
+output$plot <- renderPlotly({
+  plot_data <- data()[[plot_dataname]]
+  plotly::plot_ly(plot_data, x = ~time_week, y = ~tumor_size, ...)
+})
+
+# CODE GENERATION APPROACH (what teal does):
+output$plot <- renderPlotly({
+  result <- data() |>
+    within(code, code = scatterplotly(...))
+  result$p
+})
+```
+
+
+## Summary
+
+1. INITIAL SETUP:
+
+   - User opens app
+   - UI renders with color picker and empty plot area
+   - Server initializes
+
+2. FIRST RENDER:
+
+   - color_inputs() returns default colors
+   - scatter_q() runs:
+     * Calls scatterplotly() with parameters
+     * scatterplotly() uses substitute() to create code expression
+     * teal::within() evaluates code in data environment
+     * Returns list(code = <expression>, p = <plotly object>)
+   - output$scatter_plot renders the plot
+
+3. USER INTERACTION:
+
+   - User changes color in color picker
+   - color_inputs() reactive updates
+   - scatter_q() reactive detects change, re-runs
+   - New plot generated with new colors
+   - output$scatter_plot re-renders
+
+4. PLOT INTERACTION:
+
+   - User selects points on plot (if dragmode = "select")
+   - plotly::event_register("plotly_selected") captures selection
+   - (In other modules, this would trigger table filtering)
+
+
+
